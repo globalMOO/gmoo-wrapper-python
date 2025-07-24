@@ -1,0 +1,1 @@
+"""Test configurations for GMOO SDK examples."""

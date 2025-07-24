@@ -1,0 +1,9 @@
+# Dependencies for running examples
+-r base.txt
+
+# Visualization and data handling
+matplotlib>=3.0
+pandas>=1.3.0
+
+# Additional scientific computing (if needed)
+scipy>=1.7.0
