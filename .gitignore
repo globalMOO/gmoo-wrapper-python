@@ -45,11 +45,19 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
+coverage.json
 *.cover
 *.py,cover
 .hypothesis/
 .pytest_cache/
 cover/
+
+# Coverage.py specific
+.coverage.py
+.coverage.py.*
+coverage_html_report/
+coverage-badge.svg
+.coveragerc.local
 
 # Translations
 *.mo

@@ -1,0 +1,160 @@
+# .coveragerc to control coverage.py
+# This file provides an alternative to pytest.ini configuration
+# Both can coexist, with command line options taking precedence
+
+[run]
+# Source code to measure coverage for
+source = gmoo_sdk
+
+# Omit these files/directories from coverage
+omit = 
+    */tests/*
+    */test_*
+    */setup.py
+    */__init__.py
+    */site-packages/*
+    */dist-packages/*
+    */.venv/*
+    */venv/*
+    */.tox/*
+    */migrations/*
+    */config/*
+
+# Enable branch coverage
+branch = True
+
+# Parallel coverage collection (useful for multiprocess testing)
+parallel = True
+
+# Include namespace packages
+source_pkgs = gmoo_sdk
+
+# Data file for coverage results
+data_file = .coverage
+
+# Dynamic context is handled by pytest-cov plugin
+# dynamic_context = test_function
+
+[report]
+# Precision for coverage percentages
+precision = 2
+
+# Minimum coverage percentage required
+fail_under = 70
+
+# Skip files with no executable code
+skip_empty = True
+
+# Skip files that are completely covered
+skip_covered = False
+
+# Show missing line numbers
+show_missing = True
+
+# Exclude these lines from coverage
+exclude_lines =
+    # Standard pragma
+    pragma: no cover
+    
+    # Don't complain about missing debug-only code
+    def __repr__
+    def __str__
+    
+    # Don't complain if tests don't hit defensive assertion code
+    raise AssertionError
+    raise NotImplementedError
+    
+    # Don't complain if non-runnable code isn't run
+    if 0:
+    if False:
+    if __name__ == .__main__.
+    if TYPE_CHECKING:
+    
+    # Don't complain about abstract methods
+    @abstractmethod
+    @abc.abstractmethod
+    
+    # Ignore property setters/getters
+    @property
+    @.*.setter
+    @.*.deleter
+    
+    # Ignore protocol definitions
+    class .*\(Protocol\):
+    class .*\(typing.Protocol\):
+    
+    # Defensive programming
+    except ImportError:
+    except NameError:
+    
+    # Platform-specific code
+    if sys.platform
+    
+    # Debugging code
+    if DEBUG:
+    if debug:
+    
+    # Deprecated code
+    warnings.warn
+    @deprecated
+    
+    # Pass statements
+    pass
+    \.\.\.
+
+# Partial branch patterns to exclude
+exclude_also =
+    # Don't complain if tests don't hit defensive assertion code:
+    raise AssertionError
+    raise NotImplementedError
+
+# Ignore missing files
+ignore_errors = True
+
+# Sort the report by coverage percentage
+sort = Cover
+
+[html]
+# Directory for HTML coverage report
+directory = htmlcov
+
+# Title for the report
+title = GMOO SDK Python Coverage Report
+
+# Show line numbers that are missing coverage
+show_contexts = True
+
+# Include these files in the report
+# include_namespace_packages = True  # Not supported in this version
+
+[xml]
+# Output file for XML coverage report
+output = coverage.xml
+
+[json]
+# Output file for JSON coverage report
+output = coverage.json
+
+# Pretty print JSON
+pretty_print = True
+
+# Show contexts
+show_contexts = True
+
+[paths]
+# Map coverage paths for different environments
+# This helps when combining coverage from different environments
+source =
+    gmoo_sdk/
+    */gmoo_sdk/
+    */site-packages/gmoo_sdk/
+    */src/gmoo_sdk/
+    D:\*/gmoo_sdk/
+    C:\*/gmoo_sdk/
+
+# Test paths equivalence
+tests =
+    tests/
+    */tests/
+    test/
+    */test/

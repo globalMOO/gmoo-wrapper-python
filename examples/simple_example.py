@@ -1,226 +1,231 @@
+"""
+Simple Example of GMOO SDK Usage
+
+This example demonstrates how to:
+1. Define a simple model function
+2. Train an inverse model using development cases
+3. Perform inverse optimization to find inputs that produce target outputs
+
+The example uses a simple quadratic function with 2 inputs and 2 outputs.
+"""
+
 import numpy as np
-from numpy.linalg import norm
-import gmoo_sdk.gmoo_encapsulation as gmapi
+import os
+from dotenv import load_dotenv
 
-def simple_test_function(input_arr):
-    """
-    Implementation of a simple but highly nonlinear test problem.
-    """
-    # Ensure input_arr is a numpy array
-    input_arr = np.array(input_arr, ndmin=1)
+# Add parent directory to path to access src
+import sys
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, parent_dir)
+sys.path.insert(0, os.path.join(parent_dir, 'src'))
 
-    v01 = input_arr[0]
-    v02 = input_arr[1]
-    v03 = input_arr[2]
+# Import GMOO SDK components
+from gmoo_sdk.load_dll import load_dll
+from gmoo_sdk.dll_interface import GMOOAPI
+from gmoo_sdk.satisfaction import check_satisfaction
+
+
+def simple_quadratic_model(inputs):
+    """
+    A simple quadratic model for demonstration.
     
-    o01 = v01 * v01 * v03 * v03
-    o02 = (v01 - 2.0) * (v01 - 2.0)  * v03 * v03
-    o03 = v01 * v02  * v03 * v03
+    Inputs: [x1, x2]
+    Outputs: [y1, y2] where:
+        y1 = x1^2 + x2^2
+        y2 = (x1 - 3)^2 + (x2 - 3)^2
+    
+    This creates a model where:
+    - y1 is minimized at (0, 0)
+    - y2 is minimized at (3, 3)
+    """
+    x1, x2 = inputs
+    
+    y1 = x1**2 + x2**2
+    y2 = (x1 - 3)**2 + (x2 - 3)**2
+    
+    return np.array([y1, y2])
 
-    # Combine outputs into a 2D array
-    output_arr = np.array([o01, o02, o03])
 
-    # Remove the last dimension of size 1
-    output_arr = np.squeeze(output_arr)
+def main():
+    """Run the simple GMOO example."""
+    
+    # Load environment variables from .env file
+    load_dotenv()
+    
+    print("=" * 60)
+    print("GMOO SDK Simple Example")
+    print("=" * 60)
+    
+    # Step 1: Load the DLL
+    print("\n1. Loading GMOO DLL...")
+    try:
+        dll_path = os.environ.get('MOOLIB')
+        if not dll_path:
+            raise ValueError("MOOLIB environment variable not set. Please check your .env file.")
+        
+        vsme_dll = load_dll(dll_path)
+        print(f"   ✓ DLL loaded successfully from: {dll_path}")
+    except Exception as e:
+        print(f"   ✗ Failed to load DLL: {e}")
+        return
+    
+    # Step 2: Define problem parameters
+    print("\n2. Setting up problem parameters...")
+    
+    # Variable bounds (2 inputs, both ranging from 0 to 5)
+    var_mins = [0.0, 0.0]
+    var_maxs = [5.0, 5.0]
+    num_outputs = 2
+    
+    # Create GMOO API instance
+    gmoo_model = GMOOAPI(
+        vsme_windll=vsme_dll,
+        vsme_input_filename="simple_example",
+        var_mins=var_mins,
+        var_maxs=var_maxs,
+        num_output_vars=num_outputs,
+        model_function=simple_quadratic_model,
+        save_file_dir="."
+    )
+    print("   ✓ GMOO model created")
+    
+    # Step 3: Train the inverse model (Development phase)
+    print("\n3. Training inverse model...")
+    
+    try:
+        # Initialize development
+        gmoo_model.development.load_vsme_name()
+        gmoo_model.development.initialize_variables()
+        gmoo_model.development.load_variable_types()
+        gmoo_model.development.load_variable_limits()
+        
+        # Design cases for training
+        gmoo_model.development.design_agents()
+        gmoo_model.development.design_cases()
+        case_count = gmoo_model.development.get_case_count()
+        print(f"   - Generated {case_count} training cases")
+        
+        # Evaluate all cases
+        gmoo_model.development.initialize_outcomes()
+        
+        for i in range(1, case_count + 1):
+            case_inputs = gmoo_model.development.poke_case_variables(i)
+            case_outputs = simple_quadratic_model(case_inputs)
+            gmoo_model.development.load_case_results(i, case_outputs)
+        
+        # Train the inverse model
+        gmoo_model.development.develop_vsme()
+        gmoo_file = gmoo_model.development.export_vsme()
+        print(f"   ✓ Inverse model trained and saved to: {gmoo_file}")
+        
+        # Clean up development
+        gmoo_model.development.unload_vsme()
+        
+    except Exception as e:
+        print(f"   ✗ Failed during development: {e}")
+        return
+    
+    # Step 4: Perform inverse optimization (Application phase)
+    print("\n4. Performing inverse optimization...")
+    
+    # Define target outputs we want to achieve
+    # Let's aim for y1=5.0 and y2=5.0
+    target_outputs = [5.0, 5.0]
+    print(f"   - Target outputs: {target_outputs}")
+    
+    # Define objective types (1 = percentage error)
+    objective_types = [1, 1]
+    
+    # Define acceptable percentage error (3%)
+    uncertainty_plus = [3.0, 3.0]
+    uncertainty_minus = [-3.0, -3.0]
+    
+    try:
+        # Load the trained model
+        gmoo_model.application.load_model()
+        
+        # Set objectives
+        gmoo_model.application.assign_objectives_target(target_outputs, objective_types)
+        gmoo_model.application.load_objective_uncertainty(uncertainty_plus, uncertainty_minus)
+        
+        # Initial guess (center of the domain)
+        current_inputs = np.array([2.5, 2.5])
+        current_outputs = simple_quadratic_model(current_inputs)
+        
+        print(f"   - Starting from: inputs={current_inputs}, outputs={current_outputs}")
+        
+        # Optimization loop
+        max_iterations = 50
+        converged = False
+        
+        for iteration in range(1, max_iterations + 1):
+            # Get next suggestion from GMOO
+            next_inputs, l1_norm, l2_norm = gmoo_model.application.perform_inverse_iteration(
+                target_outputs=target_outputs,
+                current_inputs=current_inputs,
+                current_outputs=current_outputs,
+                objective_types=objective_types
+            )
+            
+            # Evaluate the suggested inputs
+            current_inputs = next_inputs
+            current_outputs = simple_quadratic_model(current_inputs)
+            
+            # Check satisfaction
+            satisfied, error_values = check_satisfaction(
+                current_outputs,
+                target_outputs,
+                objective_types,
+                uncertainty_minus,
+                uncertainty_plus
+            )
+            
+            if iteration % 10 == 0 or satisfied:
+                print(f"   - Iteration {iteration}: inputs={current_inputs}, "
+                      f"outputs={current_outputs}, L1 error={l1_norm:.4f}")
+            
+            if satisfied:
+                converged = True
+                print(f"   ✓ Converged in {iteration} iterations!")
+                break
+        
+        # Clean up
+        gmoo_model.application.unload_vsme()
+        
+    except Exception as e:
+        print(f"   ✗ Failed during optimization: {e}")
+        return
+    
+    # Step 5: Display results
+    print("\n5. Results:")
+    print("=" * 60)
+    
+    if converged:
+        print(f"Target outputs: {target_outputs}")
+        print(f"Achieved outputs: {current_outputs}")
+        print(f"Final inputs: {current_inputs}")
+        
+        # Calculate percentage errors for display
+        percentage_errors = []
+        for i in range(len(target_outputs)):
+            if target_outputs[i] != 0:
+                error = abs((current_outputs[i] - target_outputs[i]) / target_outputs[i]) * 100
+                percentage_errors.append(f"{error:.2f}%")
+            else:
+                percentage_errors.append("N/A")
+        
+        print(f"Percentage errors: {percentage_errors}")
+        print("\n✓ Successfully found inputs that produce the target outputs!")
+    else:
+        print("✗ Failed to converge within the maximum iterations")
+        print(f"Best outputs achieved: {current_outputs}")
+        print(f"Best inputs found: {current_inputs}")
+    
+    # Clean up the generated .gmoo file
+    if os.path.exists(gmoo_file):
+        os.remove(gmoo_file)
+        print(f"\n✓ Cleaned up temporary file: {gmoo_file}")
 
-    return output_arr
 
 if __name__ == "__main__":
-    ######
-    #
-    #  Example of stateless encapsulation framework.
-    #
-    ######
-
-    ####
-    # Set up basic model inputs.
-    ####
-    train_vsme = True
-    filename = "simple"
-    num_input_vars = 3
-    num_output_vars = 3    
-    var_mins = [0.0, 0.0, 0.0]
-    var_maxs = [10.0, 10.0, 10.0]
-    model_function = simple_test_function
-
-    truthcase_inputs = [5.4321, 5.4321, 5.4321]
-    print("Truthcase outcomes: ", simple_test_function(truthcase_inputs))
-
-    ####
-    # Perform development case design and loading.
-    ####
-    if train_vsme:
-        # Set up development, get inputs for development cases, create VPRJ file. 
-        # VPRJ file should be tracked externally.      
-        input_dev = gmapi.get_development_cases_encapsulation(
-            var_mins,
-            var_maxs,
-            filename
-        )
-        
-        
-        # User runs the development cases.
-        output_dev = []
-        print("Training ... ")
-        for case in input_dev:
-            evaluation = model_function(case)
-            output_dev.append(evaluation)
-
-        # Load development cases into the endpoint, train, create .gmoo file. 
-        # .gmoo file should be tracked externally.
-        gmapi.load_development_cases_encapsulation(
-            output_dev,
-            var_mins,
-            var_maxs,
-            num_output_vars,
-            filename
-        )
-
-    ####
-    # Perform inverse solution workflow.
-    ####
-    # Outcomes corresponding to truthcase of [5.4321, 5.4321, 5.4321]
-    objectives_array = np.array([870.70497364, 347.58048041, 870.70497364]) 
-
-    # Starting search from center point
-    initial_guess = np.mean([var_mins, var_maxs], axis=0)
-    next_input_vars = initial_guess
-    next_output_vars = model_function(next_input_vars)
-
-    # Initializations and parameters for inverse loop
-    best_l1 = float("inf")
-    best_l1_case = None
-    iterations = 1000
-    convergence = 0.1
-    learned_case_inputs, learned_case_outputs = [], []
-
-    objective_types = [1] * len(objectives_array)
-
-    # Converge to within +/- 2% of the true value.
-    objectives_uncertainty_minus = [2.0] * len(objectives_array)
-    objectives_uncertainty_plus = [2.0] * len(objectives_array)
-
-    print("Inverse ... ")
-    for ii in range(1, iterations + 1):
-        # gMOO API takes whatever the current next_input_vars, next_output_vars are and 
-        # suggests a next input variable point for the user to try.
-        next_input_vars, l1norm_full, learned_case_inputs, learned_case_outputs = gmapi.inverse_encapsulation(
-            objectives_array,
-            var_mins,
-            var_maxs,
-            num_output_vars,
-            next_input_vars,
-            next_output_vars,
-            filename,
-            objective_types=objective_types,
-            objectives_uncertainty_minus=objectives_uncertainty_minus,
-            objectives_uncertainty_plus=objectives_uncertainty_plus,
-            learned_case_inputs=learned_case_inputs, 
-            learned_case_outputs=learned_case_outputs,
-            inverse_iteration=ii
-        )
-
-        next_output_vars = model_function(next_input_vars)
-        
-        # Check for convergence based on percentage errors
-        percentage_errors = np.abs((next_output_vars - objectives_array) / objectives_array) * 100
-        if np.all(percentage_errors <= objectives_uncertainty_plus):
-            best_l1_case = next_input_vars.copy()  # Store values, not pointer
-            best_l1_output = next_output_vars.copy()
-            print(f"Converged in {ii} iterations based on percentage errors.")
-            break
-        else:
-            l1current = norm(next_output_vars - objectives_array, ord=1)
-            if l1current < best_l1:
-                best_l1 = l1current
-                best_l1_case = next_input_vars.copy()
-                best_l1_output = next_output_vars.copy()
-        if ii == iterations:
-            print("Convergence failed.")
-    
-    print(f"Best case inputs (variables) solution: {best_l1_case} vs. {truthcase_inputs}")
-    print(f"Best case outputs (outcomes): {best_l1_output} vs. {objectives_array}")
-
-    ###
-    #  Rescoping of variables using the existing (saved) development input-output cases.
-    ###
-    input_dev = [arr.tolist() for arr in input_dev]
-    min_values_2, max_values_2 = gmapi.rescope_search_space(
-        input_dev,
-        output_dev,
-        objectives_array,
-        var_mins,
-        var_maxs,
-        num_output_vars,
-        filename
-    )
-    print(f"New (rescoped) minimum values: {min_values_2}")
-    print(f"New (rescoped) maximum values: {max_values_2}")
-    
-    ###
-    #  Retraining and repeating inverse phase with new rescoped search space. 
-    #  This pass will converge much faster.
-    ###
-    filename2 = "rescope"
-    input_dev = gmapi.get_development_cases_encapsulation(
-        min_values_2,
-        max_values_2,
-        filename2
-    )
-    
-    # User runs development cases
-    output_dev = []
-    print("Training (rescoped, narrowed search space) ... ")
-    for case in input_dev:
-        evaluation = model_function(case)
-        output_dev.append(evaluation)
-        
-    # Load development cases into the endpoint, train, create .gmoo file.
-    gmapi.load_development_cases_encapsulation(
-        output_dev,
-        min_values_2,
-        max_values_2,
-        num_output_vars,
-        filename2
-    )
-    
-    print("Inverse 2 (rescoped, narrowed search space) ... ")
-    next_input_vars = initial_guess
-    next_output_vars = model_function(next_input_vars)
-    best_l1 = float("inf")
-    best_l1_case = None
-    learned_case_inputs, learned_case_outputs = [], []
-
-    for ii in range(1, iterations + 1):
-        # gMOO API takes whatever the current next_input_vars, next_output_vars are and 
-        # suggests a next input variable point for the user to try.
-        next_input_vars, l1norm_full, learned_case_inputs, learned_case_outputs = gmapi.inverse_encapsulation(
-            objectives_array,
-            min_values_2,
-            max_values_2,
-            num_output_vars,
-            next_input_vars,
-            next_output_vars,
-            filename2,
-            learned_case_inputs=learned_case_inputs, 
-            learned_case_outputs=learned_case_outputs,
-            inverse_iteration=ii
-        )
-        
-        next_output_vars = model_function(next_input_vars)
-        l1current = norm(next_output_vars - objectives_array, ord=1)
-        
-        if l1current < best_l1:
-            best_l1 = l1current
-            best_l1_case = next_input_vars.copy()  # Store values, not pointer
-            best_l1_output = next_output_vars.copy()
-            
-            if best_l1 < convergence:
-                print(f"Converged (after rescoping to narrower search) in {ii} iterations.")
-                break
-                
-        if ii == iterations: 
-            print("Convergence failed.")
-            
-    print(f"Best case inputs (variables) solution: {best_l1_case} vs. {truthcase_inputs}")
-    print(f"Best case outputs (outcomes): {best_l1_output} vs. {objectives_array}")
+    main()
