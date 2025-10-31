@@ -66,7 +66,7 @@ class CtypesHelper:
         """
         return ctypes.create_string_buffer(text.encode('ascii'), size)
 
-@staticmethod
+
 def fortran_hollerith_string(py_string: str, pad_len: int = 32) -> ctypes.Array:
     """
     Convert a Python string to a padded byte string for Fortran compatibility.
@@ -90,7 +90,7 @@ def fortran_hollerith_string(py_string: str, pad_len: int = 32) -> ctypes.Array:
     # Create a buffer compatible with C (and by extension, Fortran)
     return ctypes.create_string_buffer(padded_string, pad_len)
 
-@staticmethod
+
 def c_string_compatibility(py_string: str, pad_len: int = 32) -> ctypes.c_wchar_p:
     """
     Convert a Python string to a padded C wchar_p string with maximum compatibility.
@@ -110,7 +110,7 @@ def c_string_compatibility(py_string: str, pad_len: int = 32) -> ctypes.c_wchar_
     c_vsme_name = ctypes.c_wchar_p(py_string)
     return c_vsme_name
 
-@staticmethod
+
 def validate_nan(input_val: Union[float, np.ndarray, List[float]], name: str = "data") -> None:
     """
     Check if a value is NaN and raise an error if it is.
@@ -132,7 +132,7 @@ def validate_nan(input_val: Union[float, np.ndarray, List[float]], name: str = "
         if np.isnan(input_val):
             raise ValueError(f"{name} is NaN.")
 
-@staticmethod
+
 def write_data(file_path: str, data: List[List[float]]) -> None:
     """
     Write data to a CSV file and create a .done file to signal completion.
@@ -163,7 +163,7 @@ def write_data(file_path: str, data: List[List[float]]) -> None:
     with open(f"{file_path}.done", 'w') as file:
         pass
 
-@staticmethod
+
 def normalize_path(base_dir: str, filename: str) -> str:
     """
     Create a normalized absolute path based on the operating system.
