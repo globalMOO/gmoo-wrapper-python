@@ -30,8 +30,8 @@ The GMOO SDK provides a Python interface to the GMOO (Global Multi-Objective Opt
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/python-wrapper-sidefork.git
-cd python-wrapper-sidefork
+git clone https://github.com/globalMOO/gmoo-wrapper-python.git
+cd gmoo-wrapper-python
 
 # Install in development mode
 pip install -e .
