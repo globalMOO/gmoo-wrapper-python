@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gmoo-sdk"
-version = "2.0.1"
+version = "2.0.2"
 description = "A Python SDK for global multi-objective optimization"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
-    {name = "Matt Freeman", email = "tamuic@gmail.com"},
-    {name = "Jason Hopkins", email = "jhopkins@nitecllc.com"},
+    {name = "Matt Freeman", email = "mfreeman@globalmoo.com"},
+    {name = "Jason Hopkins", email = "jhopkins@globalmoo.com"},
 ]
 keywords = ["optimization", "multi-objective", "engineering", "inverse-modeling"]
 classifiers = [
