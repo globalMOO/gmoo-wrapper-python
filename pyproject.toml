@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gmoo-sdk"
-version = "2.0.0"
+version = "2.0.1"
 description = "A Python SDK for global multi-objective optimization"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
-    {name = "Matt Freeman", email = "matt.freeman@example.com"},
-    {name = "Jason Hopkins", email = "jason.hopkins@example.com"},
+    {name = "Matt Freeman", email = "tamuic@gmail.com"},
+    {name = "Jason Hopkins", email = "jhopkins@nitecllc.com"},
 ]
 keywords = ["optimization", "multi-objective", "engineering", "inverse-modeling"]
 classifiers = [
@@ -43,10 +43,13 @@ dev = [
     "isort>=5.0",
     "mypy>=0.910",
     "flake8>=4.0",
+    "sphinx>=4.0",
+    "sphinx-rtd-theme>=1.0",
 ]
 examples = [
-    "matplotlib>=3.0",  # If examples need plotting
-    "pandas>=1.3.0",    # For data handling in examples
+    "matplotlib>=3.0",
+    "pandas>=1.3.0",
+    "scipy>=1.7.0",
 ]
 all = [
     "gmoo-sdk[dev]",
@@ -54,10 +57,10 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/python-wrapper-sidefork"
-Documentation = "https://github.com/yourusername/python-wrapper-sidefork#readme"
-Repository = "https://github.com/yourusername/python-wrapper-sidefork"
-Issues = "https://github.com/yourusername/python-wrapper-sidefork/issues"
+Homepage = "https://github.com/globalMOO/gmoo-wrapper-python"
+Documentation = "https://github.com/globalMOO/gmoo-wrapper-python#readme"
+Repository = "https://github.com/globalMOO/gmoo-wrapper-python"
+Issues = "https://github.com/globalMOO/gmoo-wrapper-python/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
