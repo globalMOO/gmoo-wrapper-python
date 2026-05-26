@@ -59,7 +59,7 @@ from .stateless_wrapper import GmooStatelessWrapper
 from .satisfaction import check_satisfaction
 
 # Version information
-__version__ = '2.0.0'
+__version__ = '2.0.3'
 
 # Define what gets imported with "from gmoo_sdk import *"
 __all__ = [

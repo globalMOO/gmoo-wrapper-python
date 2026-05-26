@@ -207,6 +207,25 @@ class GMOOAPI:
                              Must be provided if any variable has type 4.
         """
         self.vsme_windll = vsme_windll
+
+        # ctypes defaults each function pointer's restype to c_int. The VSME
+        # entry points are Fortran-style void subroutines that communicate
+        # status via a byref iStatus out-parameter; reading rax/eax as an
+        # int return value on the very first invocation triggers a -12004
+        # ("wrong host") from RLM's license checkout even when the env-var
+        # hostid handoff is set up correctly. Force restype=None on every
+        # bound DLLFunction here, before any descriptor access can resolve
+        # a function pointer in the default state. Symbols absent from the
+        # current vsme.so build (e.g. older builds missing VSMEBiasInit /
+        # VSMEGenInit) are silently skipped.
+        for _attr_name in dir(type(self)):
+            _attr = getattr(type(self), _attr_name, None)
+            if isinstance(_attr, DLLFunction):
+                try:
+                    getattr(vsme_windll, _attr.func_name).restype = None
+                except AttributeError:
+                    pass
+
         self.save_file_dir = save_file_dir
         self.last_status = 0
 
